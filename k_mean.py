@@ -20,6 +20,7 @@ ax = plt.axes(xlim=(-10,10),ylim=(-10,10))
 traj = ax.plot(result[:,0], result[:,1], 'ro',ms=1)[0]
 center = ax.plot(kmeans.cluster_centers_[:,0],kmeans.cluster_centers_[:,1],'bx',ms=10)[0]
 
+
 ax.set_title('2D Test')
 
 plt.show()
