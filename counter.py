@@ -51,10 +51,15 @@ class jumpingjack_counter:
 
     pca_axis = np.load('jj_pca.npy').T
 
-    center = np.load('jj_center.npy')
+    clusters = [np.load('cluster/{}.npy'.format(i)) for i in range(1,4)]
+    unit = np.load('unit.npy')
     
+    transfer = [1,2,1,3]
+
     def __init__(self):
         self.detection = []
+        self.count = 0
+        self.cur_state = 0
 
     def cal_angle(self, detection):
         j_det = np.zeros(len(jumpingjack_counter.angle_pair_list))
@@ -67,27 +72,41 @@ class jumpingjack_counter:
     def PCA(self, detection):
         return np.matmul(detection, jumpingjack_counter.pca_axis)
     
+    def preprocess(self, detection):
+        angle = self.cal_angle(detection)
+        pca = self.PCA(angle)
+        inner_product = np.inner(pca,jumpingjack_counter.unit)
+        return inner_product
+
     def get_cluster(self, detection):
-        j_det = self.cal_angle(detection)
-        pt = self.PCA(j_det)
-        l = 10000000000
-        c_ind = 0
-        for i, ct in enumerate(jumpingjack_counter.center):
-            d = ct - pt
-            if d[0]**2+d[1]**2 < l:
-                c_ind = i
-                l = d[0]**2+d[1]**2
-        return c_ind
+        pt = self.preprocess(detection)
+        for i, cluster in enumerate(jumpingjack_counter.clusters):
+            if (pt<cluster[:,0]).all() and (pt>cluster[:,1]).all():
+                return i+1
+        return 0
+
+    def check_transfer(self, nx_state):
+        trans_state = (self.cur_state+1)%len(self.transfer)
+        if nx_state == jumpingjack_counter.transfer[trans_state]:
+            self.cur_state = trans_state
+            if self.cur_state == 0:
+                self.count += 1
+        return self.count
+
 
     def add(self, detection):
+        nx_state = self.get_cluster(detection)
+        if nx_state != 0:
+            self.check_transfer(nx_state)
         self.detection.append(self.get_cluster(detection))
+        return self.count
 
     def save(self, name):
         np.save(name,self.detection)
 
-vid_name = 'jumpingjack_1.mp4'
+vid_name = 'jumpingjack_2.mp4'
 os.makedirs(vid_name[:-4],exist_ok=True)
-cap = cv2.VideoCapture('jumpingjack_1.mp4')
+cap = cv2.VideoCapture(vid_name)
 pTime = time.time()
 counter = jumpingjack_counter()
 num = 0
@@ -95,25 +114,26 @@ prev = -1
 while True:
     num+=1
     success, img = cap.read()
-    if num > 12640:
+    """if num > 12640:
         break
-    if num < 790:
-        continue
+    if num < 700:
+        continue"""
     imgRGB = cv2.cvtColor(img,cv2.COLOR_BGR2RGB)
     results = pose.process(imgRGB)
     if results.pose_landmarks:
         counter.add(results.pose_landmarks.landmark)
         mpDraw.draw_landmarks(img, results.pose_landmarks, mpPose.POSE_CONNECTIONS)
 
-    cTime = time.time()
-    fps = 1/(cTime-pTime)
-    pTime = cTime
-    if prev != counter.detection[-1]:
-        print(counter.detection[-1])
-        prev = counter.detection[-1]
-    cv2.putText(img, str(counter.detection[-1]),(100,100), cv2.FONT_HERSHEY_PLAIN, 10, (255, 0, 0), 3)
+        cTime = time.time()
+        fps = 1/(cTime-pTime)
+        pTime = cTime
+        if prev != counter.detection[-1] and counter.detection[-1] != 0:
+            print(counter.detection[-1])
+            prev = counter.detection[-1]
+    
+    cv2.putText(img, str(counter.count),(100,100), cv2.FONT_HERSHEY_PLAIN, 10, (255, 0, 0), 3)
     cv2.imshow('Image',img)
     
-    cv2.waitKey(100)
+    cv2.waitKey(10)
 
 counter.save('jumpingjack_1_final')
