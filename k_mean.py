@@ -12,7 +12,7 @@ _ = pca.fit_transform(data)
 np.save('jj_pca',pca.components_)
 
 result = np.matmul(data,pca.components_.T)
-kmeans = KMeans(n_clusters=7, random_state=0).fit(result)
+kmeans = KMeans(n_clusters=3, random_state=0).fit(result)
 
 fig = plt.figure()
 ax = plt.axes(xlim=(-10,10),ylim=(-10,10))

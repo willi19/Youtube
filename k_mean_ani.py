@@ -87,3 +87,7 @@ line_ani = animation.FuncAnimation(fig, update_lines, len(result)-1, fargs=(resu
 plt.show()
 
 np.save('jj_center',kmeans.cluster_centers_)
+
+#todo
+#remove outlier
+#calibrate to ellipse
