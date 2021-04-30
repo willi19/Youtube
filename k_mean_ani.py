@@ -82,7 +82,7 @@ stationary = ax.plot(stationary[:,0],stationary[:,1],'go',ms=3)[0]
 txt = ax.text(-9,-9,get_cluster(result[0]))
 ax.set_title('2D Test')
 line_ani = animation.FuncAnimation(fig, update_lines, len(result)-1, fargs=(result, line, txt),
-                                   interval=10, blit=False)
+                                   interval=100, blit=False)
 
 plt.show()
 
